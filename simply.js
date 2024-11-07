@@ -111,14 +111,17 @@ function getComponentAttributes(componentMatch) {
  * @returns {object} Объект компонента
  */
 async function getComponentByName(componentName) {
-  const componentPath = 'components/' + componentName + '.js';
+  const path = `${componentsPath}/${componentName}.js`;
 
   try {
-    await loadComponentModule(componentPath);
+    await loadComponentModule(path);
+
+    componentName = path.split('/').pop().split('.').shift(); // Извлекаем имя компонента
+
     if (window[componentName]) {
       return window[componentName];
     } else {
-      throw new Error(`Компонент "${componentName}" не найден в модуле ${componentPath}`);
+      throw new Error(`Компонент "${componentName}" не найден в модуле ${path}`);
     }
   } catch (error) {
     console.error(`Ошибка при загрузке компонента ${componentName}:`, error);
