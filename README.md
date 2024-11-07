@@ -88,6 +88,7 @@ runSimply('app', 'myComponent');
 ```html
 <div class="my-component">
   <MyChildComponent someAttribute="someValue" anotherAttribute="anotherValue"/>
+  <MyChildComponent2 "/>
 </div>
 ```
 
