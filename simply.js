@@ -133,7 +133,9 @@ let globalStyles = '';
 function applyStyles(component) {
   if (!component.css) return; // Проверка на наличие стилей
 
-  globalStyles += component.css
+  if (!globalStyles.includes(component.css)) {
+    globalStyles += component.css;
+  }
 }
 
 /**
