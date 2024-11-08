@@ -59,8 +59,10 @@ myComponent = { // при создании переменной-компонен
 };
 
 // добавление события
-document.addEventListener('click', () => {
-  myComponent.js.func.handleClick('Hello World!')
+document.addEventListener('click', (e) => {
+  if(e.target == document.querySelector('.my-component')) { //делегируем событие компоненту
+    myComponent.js.func.handleClick('Hello World!')
+  }
 })
 
 // или
