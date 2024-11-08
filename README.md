@@ -48,20 +48,31 @@ myComponent = { // при создании переменной-компонен
       description: 'Это мой первый компонент Simply.js'
     },
     func: { // объект методов компонента
-      handleClick: function(e) {
-        if(e.target === document.querySelector('.my-component>button')) {
-          console.log('Кнопка нажата!');
-        }
+      handleClick: function(param) {
+        console.log(param);
       }
     },
-    event: { // объект событий компонента
-      'click': 'handleClick' // Привязка имени метода к событию 'click'
-    }
   }
 };
+
+// добавление события
+document.addEventListener('click', () => {
+  myComponent.js.func.handleClick('Hello World!')
+})
+
+// или
+
+let timer = setInterval(() => {
+  if(document.querySelector('.my-component')) {
+    document.querySelector('.my-component').addEventListener('click', () => {
+      myComponent.js.func.handleClick('Hello World!')
+    })
+    clearInterval(timer)
+  }
+}, 100)
 ```
 
-Все имена событий можно использовать в свойстве event, но также доступно добавление любого js кода вне объекта-компонента, включая добавление обработку событий, но его все равно лучше делать через делегирование событий из документа или корневого элемента в html-коде, либо асинхронно в setInterval с проверкой, что элемент появился в DOM, т.к. все компоненты подключаются ассинхронно
+Все события нужно подключать вне объекта-компонента (как и любой произвольный js-код), но это нужно делать либо через делегирование событий из документа или корневого элемента в html-коде, либо асинхронно в setInterval с проверкой, что элемент появился в DOM, т.к. все компоненты подключаются ассинхронно
 
 Все свойства объекта-компонента доступны глобально по его имени, как внутри компонента, так и снаружи: 
 
