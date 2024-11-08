@@ -60,7 +60,7 @@ myComponent = { // при создании переменной-компонен
 
 // добавление события
 document.addEventListener('click', (e) => {
-  if(e.target == document.querySelector('.my-component')) { //делегируем событие компоненту
+  if(e.target === document.querySelector('.my-component')) { //делегируем событие компоненту
     myComponent.js.func.handleClick('Hello World!')
   }
 })
@@ -68,11 +68,11 @@ document.addEventListener('click', (e) => {
 // или
 
 let timer = setInterval(() => {
-  if(document.querySelector('.my-component')) {
-    document.querySelector('.my-component').addEventListener('click', () => {
+  if(document.querySelector('.my-component')) { // если элемент уже в DOM
+    document.querySelector('.my-component').addEventListener('click', () => { // добавляем обработку события
       myComponent.js.func.handleClick('Hello World!')
     })
-    clearInterval(timer)
+    clearInterval(timer) // останавливаем таймер
   }
 }, 100)
 ```
