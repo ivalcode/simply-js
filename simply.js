@@ -47,10 +47,6 @@ async function renderComponent(component) {
     }
   }
 
-  // Добавление уникального ID
-  const componentId = 'simply-component-' + Math.random().toString(36).substring(2, 15);
-  template = template.replace('<div', `<div id="${componentId}"`);
-
   // Обработка дочерних компонентов
   const componentRegex = /<([^>]+)\/>/g;
   const componentMatches = template.match(componentRegex);
@@ -74,9 +70,6 @@ async function renderComponent(component) {
 
   // Применяем стили компонента
   applyStyles(component);
-
-  // Привязываем обработчики событий
-  bindEvents(component, componentId);
 
   return template;
 }
@@ -139,20 +132,8 @@ let globalStyles = '';
  */
 function applyStyles(component) {
   if (!component.css) return; // Проверка на наличие стилей
-  let styles = component.css;
 
-  // Генерация CSS-кода из объекта стилей
-  let cssCode = '';
-  for (let selector in styles) {
-    cssCode += `${selector} { `;
-    for (let property in styles[selector]) {
-      cssCode += `${property}: ${styles[selector][property]}; `;
-    }
-    cssCode += `} `;
-  }
-
-  // Добавление стилей компонента в глобальный объект стилей
-  globalStyles += cssCode;
+  globalStyles += component.css
 }
 
 /**
@@ -162,33 +143,6 @@ function addGlobalStyles() {
   let styleTag = document.createElement('style');
   styleTag.innerHTML = globalStyles;
   document.head.appendChild(styleTag);
-}
-
-/**
- * Привязка событий компонента
- *
- * @param {object} component Объект компонента
- * @param {string} componentId Id-компонента
- */
-function bindEvents(component, componentId) {
-  if (!component.js.event) return; // Проверка на наличие событий
-
-  // Привязываем каждый обработчик события с использованием делегирования
-  for (let eventName in component.js.event) {
-    const handlerName = component.js.event[eventName];
-    const handler = component.js.func[handlerName];
-
-    if (handler) {
-      document.addEventListener(eventName, (e) => {
-        // Проверка, что событие произошло в пределах нужного компонента
-        if (e.target.closest(`#${componentId}`)) {
-          handler.call(component.js, e); // Вызов обработчика с передачей контекста и события
-        }
-      });
-    } else {
-      console.warn(`Обработчик события ${handlerName} не найден для события ${eventName}`);
-    }
-  }
 }
 
 /**
