@@ -43,18 +43,18 @@ myComponent = { // при создании переменной-компонен
     }
   },
   js: { все поля js-кода компонента (данные, методы и события) доступны глобально через myComponent
-    var: { //
+    var: { // объект данных компонента
       title: 'Привет, мир!',
       description: 'Это мой первый компонент Simply.js'
     },
-    func: {
+    func: { // объект методов компонента
       handleClick: function(e) {
         if(e.target === document.querySelector('.my-component>button')) {
           console.log('Кнопка нажата!');
         }
       }
     },
-    event: {
+    event: { // объект событий компонента
       'click': 'handleClick' // Привязка имени метода к событию 'click'
     }
   }
