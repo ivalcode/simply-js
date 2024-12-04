@@ -1,8 +1,12 @@
+const components = {};
+// Глобальный объект для хранения всех стилей
+let globalStyles = '';
+
 /**
  * Запуск приложения
  *
- * @param {string} appElementId
- * @param {string} mainComponentName
+ * @param {string} appElementId Id корневого элемента
+ * @param {string} mainComponentName Имя корневого компонента
  */
 async function runSimply(appElementId, mainComponentName) {
   try {
@@ -12,10 +16,23 @@ async function runSimply(appElementId, mainComponentName) {
 
     const appElement = document.getElementById(appElementId);
     appElement.innerHTML = appHtml;
-
     addGlobalStyles();
+
+    // 1.  Ждем загрузки всех компонентов
+    await Promise.all(Object.values(components._loading));
+
+    // 2. Перебираем только загруженные компоненты
+    for (let componentName in components) {
+      if (
+        componentName !== '_loading' &&
+        components.hasOwnProperty(componentName)
+      ) {
+        // Фильтруем служебные свойства
+        await bindEvents(components[componentName]); // Передаем сам компонент
+      }
+    }
   } catch (error) {
-    console.error("Ошибка при запуске приложения:", error);
+    console.error('Ошибка при запуске приложения:', error);
   }
 }
 
@@ -27,7 +44,7 @@ async function runSimply(appElementId, mainComponentName) {
  */
 async function renderComponent(component) {
   if (!component || !component.html) {
-    throw new Error("Компонент не имеет свойства html");
+    throw new Error('Компонент не имеет свойства html');
   }
 
   let template = component.html;
@@ -53,12 +70,16 @@ async function renderComponent(component) {
   if (componentMatches) {
     for (let componentMatch of componentMatches) {
       let componentName = componentMatch.split(' ')[0].slice(1);
-      let  componentAttributes  =  getComponentAttributes(componentMatch);
+      let componentAttributes = getComponentAttributes(componentMatch);
       const childComponent = await getComponentByName(componentName); // Асинхронное получение дочернего компонента
       if (childComponent) {
         //  Создаем  новый  экземпляр  компонента
-        let  componentInstance  =  Object.assign({},  childComponent);
-        componentInstance.js.var  =  Object.assign({},  componentInstance.js.var,  componentAttributes);
+        let componentInstance = Object.assign({}, childComponent);
+        componentInstance.js.var = Object.assign(
+          {},
+          componentInstance.js.var,
+          componentAttributes
+        );
 
         const childComponentHtml = await renderComponent(componentInstance);
         template = template.replace(componentMatch, childComponentHtml);
@@ -83,11 +104,13 @@ async function renderComponent(component) {
 function getComponentAttributes(componentMatch) {
   let attributes = {};
   // Находим все атрибуты в строке тега
-  let attrMatches = componentMatch.match(/(\S+)=["']?((?:.(?!["']?\s+(?:\S+)=|[>"']))+.)["']?/g);
+  let attrMatches = componentMatch.match(
+    /(\S+)=["']?((?:.(?!["']?\s+(?:\S+)=|[>"']))+.)["']?/g
+  );
 
   if (attrMatches) {
     // Преобразуем атрибуты в объект
-    attrMatches.forEach(attrMatch => {
+    attrMatches.forEach((attrMatch) => {
       let [attrName, attrValue] = attrMatch.split('=');
       attrName = attrName.trim();
       attrValue = attrValue.replace(/['"]/g, '').trim(); // Убираем кавычки
@@ -104,26 +127,40 @@ function getComponentAttributes(componentMatch) {
  * @returns {object} Объект компонента
  */
 async function getComponentByName(componentName) {
+  if (!components._loading) {
+    components._loading = {}; // Хранилище загружаемых компонентов
+  }
+
+  // Проверяем, загружен ли компонент
+  if (components[componentName]) {
+    return components[componentName];
+  }
+
+  // Если компонент уже загружается, возвращаем текущий промис
+  if (components._loading[componentName]) {
+    return components._loading[componentName];
+  }
+
   const path = `${componentsPath}/${componentName}.js`;
 
-  try {
-    await loadComponentModule(path);
+  // Создаем новый промис для загрузки компонента и сохраняем его в _loading
+  components._loading[componentName] = new Promise(async (resolve, reject) => {
+    try {
+      var module = await loadComponentModule(path);
 
-    componentName = path.split('/').pop().split('.').shift(); // Извлекаем имя компонента
+      componentName = path.split('/').pop().split('.').shift(); // Извлекаем имя компонента
 
-    if (window[componentName]) {
-      return window[componentName];
-    } else {
-      throw new Error(`Компонент "${componentName}" не найден в модуле ${path}`);
+      components[componentName] = module.default;
+      resolve(components[componentName]);
+    } catch (error) {
+      console.error(`Ошибка при загрузке компонента ${componentName}:`, error);
+      reject(error); // Передаем ошибку в reject
+      delete components._loading[componentName];
     }
-  } catch (error) {
-    console.error(`Ошибка при загрузке компонента ${componentName}:`, error);
-    throw error;
-  }
-}
+  });
 
-// Глобальный объект для хранения всех стилей
-let globalStyles = '';
+  return components._loading[componentName];
+}
 
 /**
  * Применение стилей компонента
@@ -152,25 +189,43 @@ function addGlobalStyles() {
  *
  * @param {string} componentPath Путь до файла модуля
  */
-function loadComponentModule(componentPath) {
-  return new Promise((resolve, reject) => {
-    const xhr = new XMLHttpRequest();
-    xhr.open('GET', componentPath);
+async function loadComponentModule(componentPath) {
+  try {
+    let module = await import(componentPath);
+    return module;
+  } catch (error) {
+    console.error(
+      `Ошибка при динамическом импорте модуля ${componentPath}:`,
+      error
+    );
+    throw error; // Передаем ошибку дальше
+  }
+}
 
-    xhr.onload = () => {
-      if (xhr.status >= 200 && xhr.status < 300) {
-        try {
-          let module = eval(xhr.responseText);
-          resolve(module);
-        } catch (err) {
-          reject(new Error(`Ошибка в коде модуля: ${err.message}`));
-        }
-      } else {
-        reject(new Error(xhr.statusText));
-      }
-    };
+/**
+ * Привязка событий компонента
+ *
+ * @param {object} component Объект компонента
+ */
+async function bindEvents(component) {
+  if (!component || !component.js || !component.js.event) return; // Дополнительная проверка
 
-    xhr.onerror = () => reject(new Error('Ошибка загрузки файла!'));
-    xhr.send();
-  });
+  // Привязываем каждый обработчик события с использованием делегирования
+  for (let eventName in component.js.event) {
+    var handlerArray = component.js.event[eventName];
+    var elems = document.querySelectorAll(handlerArray[0]);
+    var handler = component.js.func[handlerArray[1]];
+
+    if (handler) {
+      elems.forEach((elem) => {
+        elem.addEventListener(eventName, (e) => {
+          handler(e);
+        });
+      });
+    } else {
+      console.warn(
+        `Обработчик события ${handlerArray[1]} не найден для события ${eventName}`
+      );
+    }
+  }
 }
