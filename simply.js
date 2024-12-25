@@ -210,22 +210,20 @@ async function loadComponentModule(componentPath) {
 async function bindEvents(component) {
   if (!component || !component.js || !component.js.event) return; // Дополнительная проверка
 
-  // Привязываем каждый обработчик события с использованием делегирования
-  for (let eventName in component.js.event) {
-    var handlerArray = component.js.event[eventName];
-    var elems = document.querySelectorAll(handlerArray[0]);
-    var handler = component.js.func[handlerArray[1]];
+  // Привязываем каждый обработчик события
+  component.js.event.forEach(event => {
+    const { type, selector, handler } = event; // Деструктуризация для удобства
+    const elems = document.querySelectorAll(selector);
+    const eventHandler = component.js.func[handler];
 
-    if (handler) {
-      elems.forEach((elem) => {
-        elem.addEventListener(eventName, (e) => {
-          handler(e);
+    if (eventHandler) {
+      elems.forEach(elem => {
+        elem.addEventListener(type, (e) => {
+          eventHandler(e); // Вызов привязанного обработчика
         });
       });
     } else {
-      console.warn(
-        `Обработчик события ${handlerArray[1]} не найден для события ${eventName}`
-      );
+      console.warn(`Обработчик события "${handler}" не найден для события "${type}"`);
     }
-  }
+  });
 }
